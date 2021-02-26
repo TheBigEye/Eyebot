@@ -136,7 +136,7 @@ text.insert('end', '\n' + "Escribe /help o di hola")
 text.insert('end', '\n' + "")
 
 root.wait_visibility(root)
-root.wm_attributes('-alpha',0.9)   # transparent windows  0.9 - 9
+root.wm_attributes('-alpha',0.9)   # Ventana transpaarente  0.9 - 9
 
 
 
