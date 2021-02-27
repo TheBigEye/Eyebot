@@ -1,143 +1,339 @@
-from tkinter import *
-from PIL import Image,ImageTk
-import emoji
-import keyboard
-import time
+from getpass import getuser
+from playsound import playsound
+import platform
+import os
+import re
+import random
+import tkinter
 
-root=Tk()
+
+#----------------------------------------------------------------------
+#  Main.py (Eye-bot)
+#
+#  Una gran implementación de un chatbot basado en lenguaje natural
+#  para matar el tiempo, y para tener algo de compania (algo asi)
+#
+#
+#  Hecho por TheBigEye
+#  Bot inspirado en ELIZA de Joseph Weizenbaum (1965)
+#----------------------------------------------------------------------
+
 
 bot = "Eye: "
+cursor = "> "
 
-version = 1.0
+version = "4.9" # hmmmm esto a que me recuerda?
 
-def send():
+Languaje = "spanish" # decidi hacer un sistema de lenguajes, pero todavia no he empezado
 
-    file = open("cerebro.txt",'r')
+Psicologo = True # Estoy implementando un sistema de modos, para que el usuario pueda hablar de diferente manera con el bot
+Amigo = False 
 
-    send="Tu: "+a.get() 
+usuario = getuser() # obtiene el nombre del usuario desde el sistema
+sistema = platform.system()# obtiene el sistema para ajustar la compatibilidad
 
-    text.insert('end',"\n" + send)
+# Cerebro, patrones, y frases mas probables del usuario y eyebot
+Brain = [
+    [r'necesito(.*)',
+     ["¿Por qué necesita {0}?",
+      "¿Realmente te ayudaría a obtener {0}?",
+      "¿Está seguro de que necesita {0}?"]],
 
-    #Hola
-    if(a.get()=='hi'):
-        data = file.readlines()[0]   
-        text.insert('end', '\n' + bot + data )
-   
-    elif(a.get()=='hola'):
-        data = file.readlines()[1]   
-        text.insert('end', '\n' + bot + data)
-       
-    elif(a.get()=='hola tambien'):
-        data = file.readlines()[2]   
-        text.insert('end', '\n' + bot + data) 
+    [r'por que no puedes ([^\?]*)\??' or r'por qué no puedes ([^\?]*)\??',
+     ["¿De verdad crees que no lo hago? {0}?",
+      "Tal vez eventualmente lo haré. {0}.",
+      "¿De verdad quieres que yo {0}?"]],
 
-    elif(a.get()=='hola?'):
-        data = file.readlines()[3]   
-        text.insert('end', '\n' + bot + data)
-    
+    [r'¿Por que no puedo ([^\?]*)\??' or r'por que no puedo ([^\?]*)\??' or r'¿Por qué no puedo ([^\?]*)\??' or r'Por qué no puedo ([^\?]*)\??',
+     ["¿Crees que deberías ser capaz de {0}?",
+      "Si pudieras {0}, ¿qué harías?",
+      "No sé - ¿por qué no puedes {0}?",
+      "¿Lo has intentado realmente?",
+      "Si no eres capaz de {0} entonces eso te define cómo un autentico marica!"]],
 
-    #Como estas?
-    if(a.get()=='como estas?'):
-        data = file.readlines()[5]   
-        text.insert('end', '\n' + bot + data)
+    [r'no puedo(.*)',
+     ["¿Cómo sabes que no puedes{0}?",
+      "Tal vez podría {0} si lo intentó.",
+      "¿Qué se necesita para que usted {0}?"]],
 
-    elif(a.get()=='como te sentis?'):
-        data = file.readlines()[6]   
-        text.insert('end', '\n' + bot + data)
+    [r'yo soy (.*)',
+     ["¿Has venido a mí porque eres  {0}?",
+      "¿Cuánto tiempo has estado {0}?",
+      "¿Cómo te sientes acerca de ser {0}?"]],
 
-    elif(a.get()=='como te sientes?'):
-        data = file.readlines()[7]   
-        text.insert('end', '\n' + bot + data)
+    [r'estoy (.*)',
+     ["¿Cómo te hace sentir{0}?",
+      "¿Te gusta ser {0}?",
+      "¿Por qué me dices que eres{0}?",
+      "¿Por qué crees que eres  {0}?"]],
 
-    elif(a.get()=='estas bien?'):
-        data = file.readlines()[8]   
-        text.insert('end', '\n' + bot + data)
-    
+    [r'¿ ([^\?]*)\??',
+     ["¿Por qué importa si soy {0}?",
+      "¿Lo preferirías si no fuera {0}?",
+      "Tal vez usted piensa que soy.",
+      "Puedo ser {0} - ¿qué piensas?"]],
 
-    #Me siento bien
-    if(a.get()=='bien'):
-        data = file.readlines()[10]   
-        text.insert('end', '\n' + bot + data)
+    [r'¿qué (.*)' or r'qué (.*)' or r'que (.*)',
+     ["¿Por qué preguntas?",
+      "¿Cómo le ayudaría una respuesta a eso?",
+      "¿Qué piensas?"]],
 
-    elif(a.get()=='muy bien'):
-        data = file.readlines()[11]   
-        text.insert('end', '\n' + bot + data)
+    [r'¿cómo (.*)' or r'cómo (.*)' or r'como (.*)',
+     ["¿Cómo se supone?",
+      "Tal vez puedas responder a tu propia pregunta.",
+      "¿Qué estás realmente pidiendo?"]],
 
-    elif(a.get()=='me siento bien'):
-        data = file.readlines()[12]   
-        text.insert('end', '\n' + bot + data)
+    [r'porque (.*)',
+     ["¿Es esa la verdadera razón?",
+      "¿Qué otras razones vienen a la mente?",
+      "¿Esa razón se aplica a cualquier otra cosa?",
+      "Si {0}, ¿qué otra cosa debe ser verdadera?"]],
 
-    elif(a.get()=='de maravilla'):
-        data = file.readlines()[13]   
-        text.insert('end', '\n' + bot + data)
+    [r'(.*) lo siento (.*)',
+     ["Hay muchas veces cuando no se necesita disculpa.",
+      "¿Qué sentimientos tiene cuando se disculpa?"]],
 
-    elif(a.get()=='feliz'):
-        data = file.readlines()[14]   
-        text.insert('end', '\n' + bot + data)
+    [r'hola(.*)',
+     ["Hola ... me alegro de que puedas hablar por hoy.",
+      "¿Hola, cómo estas hoy?",
+      "Hola, ¿cómo te sientes hoy?"]],
 
-    elif(a.get()=='si'):
-        data = file.readlines()[14]   
-        text.insert('end', '\n' + bot + data) 
+    [r'pienso (.*)',
+     ["¿Dudas {0}?",
+      "¿De verdad piensas eso?",
+      "Pero no estás seguro {0}?"]],
+
+    [r'(.*) amigo (.*)',
+     ["Cuéntame más sobre tus amigos.",
+      "Cuando piensas en un amigo, ¿qué te viene a la mente?",
+      "¿Por qué no me hablas de un amigo desde la infancia?"]],
+
+    [r'si',
+     ["Pareces muy seguro.",
+      "Está bien, pero ¿puedes hacer algo?"]],
+
+    [r'(.*) ordenador(.*)',
+     ["¿De verdad estás hablando de mí?",
+      "¿Parece extraño hablar con una computadora?",
+      "¿Cómo te hacen sentir las computadoras?",
+      "¿Se siente amenazado por las computadoras?"]],
+
+    [r'eso es (.*)',
+     ["¿Crees que es {0}?",
+      "Tal vez sea {0} - ¿qué piensas?",
+      "Si fuera {0}, ¿qué harías?",
+      "Podría ser que {0}."]],
+
+    [r'es eso (.*)',
+     ["Pareces muy seguro.",
+      "Si te dijera que probablemente no es {0}, ¿qué sentirías?"]],
+
+    [r'¿puedes ([^\?]*)\??',
+     ["¿Qué te hace pensar que no puedo {0}?",
+      "Si pudiera {0}, ¿entonces qué?",
+      "¿Por qué me preguntas si puedo (0)?"]],
+
+    [r'puedo ([^\?]*)\??',
+     ["No puedes querer {0}.",
+      "¿Quieres ser capaz de {0}?",
+      "Si pudieras {0}, ¿cierto?"]],
+
+    [r'tu eres (.*)' or r'¿tu eres (.*)',
+     ["¿Por qué crees que soy {0}?",
+      "¿Te gusta pensar que soy {0}?",
+      "Tal vez usted quiere que sea.",
+      "¿Tal vez estás hablando de ti?"]],
+
+    [r'¿eres ture (.*)',
+     ["¿Por qué dices que soy {0}?",
+      "¿Por qué crees que soy {0}?",
+      "¿Estamos hablando de ti o de mí?"]],
+
+    [r'¿no lo hago (.*)',
+     ["No realmente {0}?",
+      "¿Por qué no {0}?",
+      "¿Quieres {0}?"]],
+
+    [r'me siento (.*)',
+     ["Bueno, cuéntame más sobre estos sentimientos.",
+      "¿Sientes a menudo {0}?",
+      "¿Cuándo sientes normalmente {0}?",
+      "Cuando sientes {0}, ¿qué haces?"]],
+
+    [r'yo tengo (.*)',
+     ["¿Por qué me dices que tienes {0}?",
+      "¿Realmente tienes {0}?",
+      "Ahora que tienes {0}, ¿qué harás después?"]],
+
+    [r'yo debo (.*)',
+     ["¿Podría explicar por qué lo haría?",
+      "¿Por que lo harias?",
+      "¿Quién más sabe que lo harías?"]],
+
+    [r'esta ahí (.*)',
+     ["¿Crees que hay {0}?",
+      "Es probable que haya {0}.",
+      "¿Te gustaría tener {0}?"]],
+
+    [r'mi (.*)',
+     ["Ya veo, tu {0}.",
+      "¿Por qué dices que tu {0}?",
+      "Cuando tu {0}, ¿cómo te sientes?"]],
+
+    [r'tu (.*)',
+     ["debemos estar discutiendo contigo, no conmigo.",
+      "¿Por qué dices eso de mí?",
+      "¿Por qué te importa si yo {0}?"]],
+
+    [r'por qué (.*)',
+     ["¿Por qué no me dices la razón por la cual {0}?",
+      "¿Por qué crees que {0}?"]],
+
+    [r'quiero que (.*)',
+     ["¿Qué significaría para ti si tienes {0}?",
+      "¿Por qué quieres {0}?",
+      "¿Qué harías si tuvieras {0}?",
+      "Si tienes {0}, entonces ¿qué harías?"]],
+
+    [r'(.*) madre(.*)',
+     ["Cuéntame más sobre tu madre.",
+      "¿Cómo era tu relación con tu madre?",
+      "¿Cómo te sientes con tu madre?",
+      "¿Cómo se relaciona esto con tus sentimientos hoy?",
+      "Las buenas relaciones familiares son importantes."]],
+
+    [r'(.*) padre(.*)',
+     ["Cuéntame más sobre tu padre.",
+      "¿Cómo te hizo sentir tu padre?",
+      "¿Cómo te sientes con tu padre?",
+      "¿Su relación con su padre se relaciona con sus sentimientos hoy?",
+      "¿Tiene problemas para mostrar afecto con su familia?"]],
+
+    [r'(.*) novia(.*)',
+     ["Cuéntame más sobre tu novia.",
+      "cuentame sobre tu relacion",
+      "¿Cómo te sientes con tu novia?",
+      "entiendo :(",
+      "(҂◡_◡) solo, en el mundo, te entiendo"]],
+  
+
+    [r'(.*) niño(.*)',
+     ["¿Tenías amigos íntimos cuando era niño?",
+      "¿Cuál es tu recuerdo favorito de la niñez?",
+      "¿Recuerdas algún sueño o pesadilla desde la infancia?",
+      "¿Alguna vez te han molestado los otros niños?",
+      "¿Cómo crees que tus experiencias infantiles se relacionan con tus sentimientos hoy?"]],
+
+    [r'(.*)\?',
+     ["¿Porque preguntas eso?",
+      "Por favor, considere si puede responder a su propia pregunta.",
+      "¿Quizás la respuesta está dentro de ti?",
+      "¿Por qué no me lo dices?"]],
+
+    [r'adios',
+     ["Gracias por hablar conmigo.",
+      "Adiós.",
+      "Gracias, eso será $ 150. ¡Que tengas un buen día!, ho espera, era una broma xddd"]],
+
+    [r'te amo',
+     ["Oh... gracias",
+      "Ok?",
+      ":)"]],
+
+    [r'(.*)',
+     ["Por favor, cuéntame más.",
+      "Vamos a cambiar de enfoque un poco ... Háblame de tu familia.",
+      "¿Puedes profundizar sobre eso?",
+      "¿Por qué dices eso {0}?",
+      "Ya veo.",
+      "Muy interesante.",
+      "{0}.",
+      "Ya veo, ¿y qué te dice eso?",
+      "¿Cómo te hace sentir eso?",
+      "¿Cómo te sientes cuando dices eso?"]]
+]
+
+Verbs = {
+    "estoy": "estas",
+    "soy": "eres",
+    "fui": "fuiste",
+    "yo": "tu",
+    "deberia": "deberias",
+    "tengo": "tendrias",
+    "quiero": "quieres",
+    "mio": "tuyo",
+    "eres": "soy",
+    "tu tienes": "yo tengo",
+    "tu seras": "yo sere",
+    "tuyo": "mio",
+    "vuestro": "nuestro",
+    "sobre ti": "sobre mi",
+    "sobre mi": "sobre ti"
+}
 
 
 
-    #Tema (ella me dejo) version mujer
-
-    if(a.get()=='ella me dejo'):
-        data = file.readlines()[19]   
-        text.insert('end', '\n' + bot + data)
-
-    elif(a.get()=='estas ahi?'):
-        data = file.readlines()[20]   
-        text.insert('end', '\n' + bot + data)
-
-    elif(a.get()=='me das un consejo?'):
-        data = file.readlines()[21]   
-        text.insert('end', '\n' + bot + data)
-
-    elif(a.get()=='crees que no me vuelva a hablar?'):
-        data = file.readlines()[22]   
-        text.insert('end', '\n' + bot + data)
-
-    elif(a.get()=='alguna vez tuvistes'):
-        data = file.readlines()[23]   
-        text.insert('end', '\n' + bot + data)
-
-    elif(a.get()=='alguna vez tuvistes novia?'):
-        data = file.readlines()[23]   
-        text.insert('end', '\n' + bot + data) 
+def reflect(fragment):
+    tokens = fragment.lower().split()
+    for i, token in enumerate(tokens):
+        if token in Verbs:
+            tokens[i] = Verbs[token]
+    return ' '.join(tokens)
 
 
-    
-
-root.title("The eye " + str(version))
-root.iconbitmap('Assets/Eye.ico')
-root.geometry("700x700")
-root.config(background_="Black")
-
-text = Text(root, width=85, height=37, bg="black", fg= "light gray",borderwidth = 0, font=("Consolas", 11))
-text.place(x=0, y=0)
-
-BotLabel = Label(text = bot, fg="green", bg="black", font=("Consolas", 11))
-
-a = Entry(root, width=80, bg="black", fg="light gray", font=("Consolas", 11))
-a.config(insertbackground='white')
-
-img = Image.open('Assets/Send.png')
-img = img.resize((32, 32), Image.ANTIALIAS) # Redimension (Alto, Ancho)
-img = ImageTk.PhotoImage(img)
-
-Send = Button(root, bg='black', fg="dark gray", borderwidth = 0, image=img, text= "", width=50, height=25,command=send, font=("Consolas", 11))
-Send.place(x=650, y=666)
-a.place(x=0, y=670)
-#a.grid(row=1, column=0)
-
-text.insert('end', '\n' + "Escribe /help o di hola")
-text.insert('end', '\n' + "")
-
-root.wait_visibility(root)
-root.wm_attributes('-alpha',0.9)   # Ventana transpaarente  0.9 - 9
+def analyze(statement):
+    for pattern, responses in Brain:
+        match = re.match(pattern, statement.rstrip(".!"))
+        if match:
+            response = random.choice(responses)
+            return response.format(*[reflect(g) for g in match.groups()])
 
 
 
-root.mainloop()
+#Interfaz de comandos, por razones de incompatibilidad, Tkinter se dejo de usar
+def main():
+
+  if (Psicologo == True):
+        print ("Se inicio en modo Psicologo")
+
+
+
+  if (sistema == "Linux"):
+        os.system ("clear") 
+
+        if (Amigo == True):
+          print ("Se inicio en modo Amigo")
+
+        if (Psicologo == True):
+          print ("Se inicio en modo Psicologo")
+
+        print (cursor + bot + "Hola ¿Cómo te sientes hoy "+ usuario +"?")
+
+
+
+  if (sistema == "Windows"):
+        os.system ("cls") 
+
+        if (Amigo == True):
+          print ("Se inicio en modo Amigo")
+
+        if (Psicologo == True):
+          print ("Se inicio en modo Psicologo")
+
+        print (cursor + bot + "Hola ¿Cómo te sientes hoy "+ usuario +"?")
+  
+
+  #print (cursor + bot + "Hola ¿Cómo te sientes hoy?")
+
+  while True:
+        statement = input(cursor).lower()
+
+        playsound("Assets/Sounds/pip.mp3")
+        print (cursor + bot + analyze(statement))
+
+        if statement == "quit":
+            break
+
+
+if __name__ == "__main__":
+    main()
